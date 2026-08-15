@@ -1,0 +1,30 @@
+# GROUPE 1 : Le serveur web (FastAPI)
+fastapi==0.115.6              # Framework web ultra-rapide
+uvicorn[standard]==0.34.0     # Serveur qui fait tourner FastAPI
+python-multipart==0.0.20      # Pour recevoir des fichiers (images)
+
+# GROUPE 2 : Les moteurs d'IA (Groq + OpenAI)
+groq==0.13.0                  # Client officiel pour Groq
+openai==1.55.3                # Client compatible OpenAI (pour fallback)
+
+# GROUPE 3 : La base de données vectorielle (Qdrant)
+qdrant-client==1.12.1         # Client pour Qdrant Cloud
+
+# GROUPE 4 : Les embeddings locaux (FastEmbed)
+fastembed==0.4.0              # Génère des vecteurs en local (sans API)
+
+# GROUPE 5 : Traitement des documents Markdown
+langchain-text-splitters==0.3.5  # Découpe les textes en chunks
+tiktoken==0.8.0                  # Compte les tokens (pour le LLM)
+markdown==3.7                    # Lit les fichiers .md
+python-frontmatter==1.1.0        # Lit les métadonnées des .md
+
+# GROUPE 6 : Utilitaires
+python-dotenv==1.0.1          # Lit le fichier .env (variables secrètes)
+pydantic==2.10.4              # Valide les données
+pydantic-settings==2.6.1      # Gère la configuration
+httpx==0.28.1                 # Fait des requêtes HTTP (appeler Groq/HF)
+tenacity==9.0.0               # Réessaie automatiquement en cas d'erreur
+
+
+python-dotenv==1.0.1          
