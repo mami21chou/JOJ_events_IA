@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from contextlib import asynccontextmanager
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
 from app.core.config import settings
@@ -8,6 +9,7 @@ from langchain_qdrant import QdrantVectorStore
 from langchain_groq import ChatGroq
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain_core.prompts import ChatPromptTemplate
+from fastapi import FastAPI
 import warnings
 from app.prompts.instructions import SYSTEM_PROMPT
 
@@ -164,3 +166,46 @@ def generate_answer(
             return f"Service temporairement indisponible. Erreur : {fallback_err}"
 
 
+# ---------------------------------------------------------------------------
+# Point d'entrée FastAPI
+# ---------------------------------------------------------------------------
+
+# Stockage global du vector_store initialisé au démarrage
+_vector_store: QdrantVectorStore | None = None
+
+
+def get_vector_store() -> QdrantVectorStore:
+    """Retourne le vector store initialisé au démarrage de l'app."""
+    if _vector_store is None:
+        raise RuntimeError("Le vector store n'est pas encore initialisé.")
+    return _vector_store
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Charge et indexe les documents une seule fois au démarrage."""
+    global _vector_store
+    print("Démarrage : chargement et indexation des documents...")
+    documents = load_documents()
+    chunks = create_chunks(documents)
+    _vector_store = index_chunks_in_qdrant(chunks)
+    print(f"Vector store prêt ({len(chunks)} chunks indexés).")
+    yield
+    print("Arrêt de l'application.")
+
+
+app = FastAPI(
+    title=settings.API_TITLE,
+    description=settings.API_DESCRIPTION,
+    lifespan=lifespan,
+)
+
+# Montage du routeur securite_ia (validation, rate limit, filtrage, chat sécurisé)
+from securite_ia import routeur  # noqa: E402
+app.include_router(routeur)
+
+
+@app.get("/health", tags=["Santé"])
+def health_check():
+    """Vérifie que l'API est opérationnelle."""
+    return {"status": "ok", "service": settings.API_TITLE}
