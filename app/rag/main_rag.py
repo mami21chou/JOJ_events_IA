@@ -104,32 +104,9 @@ def search_documents(vector_store: QdrantVectorStore, question: str):
     return filtered_results
 
 
-    """Charge l'ensemble des fichiers Markdown du dossier data/."""
-    documents = []
-    data_path = Path(settings.DATA_PATH)
-
-    for file_path in data_path.rglob("*.md"):
-        try:
-            content = file_path.read_text(encoding="utf-8")
-            documents.append(
-                Document(
-                    page_content=content,
-                    metadata={"source": str(file_path), "filename": file_path.name}
-                )
-            )
-        except Exception as e:
-            print(f"Erreur lors de la lecture de {file_path}: {e}")
-
-    return documents
+   
 
 
-    """Découpe les documents Markdown en chunks avec chevauchement."""
-    text_splitter = RecursiveCharacterTextSplitter.from_language(
-        language=Language.MARKDOWN,
-        chunk_size=settings.CHUNK_SIZE,
-        chunk_overlap=settings.CHUNK_OVERLAP,
-    )
-    return text_splitter.split_documents(documents)
 
 def generate_answer(
     question: str, retrieved_docs: list[tuple[Document, float]]
