@@ -181,15 +181,27 @@ def get_vector_store() -> QdrantVectorStore:
     return _vector_store
 
 
+def connect_to_qdrant() -> QdrantVectorStore:
+    """
+    Se connecte à la collection Qdrant existante sans réinsérer les données.
+    À utiliser au démarrage de l'app quand les données sont déjà indexées.
+    """
+    embedding_model = get_embedding_model()
+    return QdrantVectorStore.from_existing_collection(
+        embedding=embedding_model,
+        url=settings.QDRANT_URL,
+        api_key=settings.QDRANT_API_KEY,
+        collection_name=settings.QDRANT_COLLECTION_NAME,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Charge et indexe les documents une seule fois au démarrage."""
+    """Connexion au vector store Qdrant existant au démarrage."""
     global _vector_store
-    print("Démarrage : chargement et indexation des documents...")
-    documents = load_documents()
-    chunks = create_chunks(documents)
-    _vector_store = index_chunks_in_qdrant(chunks)
-    print(f"Vector store prêt ({len(chunks)} chunks indexés).")
+    print("Démarrage : connexion à la collection Qdrant existante...")
+    _vector_store = connect_to_qdrant()
+    print("Vector store prêt.")
     yield
     print("Arrêt de l'application.")
 
@@ -203,6 +215,10 @@ app = FastAPI(
 # Montage du routeur securite_ia (validation, rate limit, filtrage, chat sécurisé)
 from securite_ia import routeur  # noqa: E402
 app.include_router(routeur)
+
+# Montage du routeur chatbot_ia (endpoint /api/chatbot/message/)
+from chatbot_ia import routeur as routeur_chatbot  # noqa: E402
+app.include_router(routeur_chatbot)
 
 
 @app.get("/health", tags=["Santé"])
