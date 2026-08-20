@@ -30,8 +30,6 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL")
 
     
-
-
     # Rag
     CHUNK_SIZE: int = int(os.getenv("CHUNK_SIZE"))
     CHUNK_OVERLAP: int = int(os.getenv("CHUNK_OVERLAP"))  

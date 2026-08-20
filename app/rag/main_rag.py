@@ -11,29 +11,39 @@ from langchain_core.prompts import ChatPromptTemplate
 import warnings
 from app.prompts.instructions import SYSTEM_PROMPT
 
+
+# Permet de filtrer l'avertissement DeprecationWarning et ainsi de pouvoir les ignorer
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+
+
+# Fonction qui charge les documents dans la base de connaissances (DANS DATA)
+# Il regroupe le contenu de tous les documents dans un seul document 
 
 def load_documents() -> list[Document]:
     """Reads all Markdown files from settings.DATA_PATH as LangChain Document objects."""
     documents = []
     data_path = Path(settings.DATA_PATH)
 
+# Rglob ^permet de chercher des sous fichiers dans le dossier 
     for file_path in data_path.rglob("*.md"):
+
+        # On regroupe tous les documents dans un seul document 
         try:
             content = file_path.read_text(encoding="utf-8")
-            documents.append(
-                Document(
-                    page_content=content,
-                    metadata={"source": str(file_path), "filename": file_path.name}
-                )
-            )
+            documents.append(Document(page_content=content, metadata={"source": str(file_path), "filename": file_path.name}))
         except Exception as e:
             print(f"Error reading {file_path}: {e}")
 
     return documents
 
+
+
+# Fonction qui chunk le document final
 def create_chunks(documents: list[Document]) -> list[Document]:
     """Splits Document objects into chunked Document objects with preserved metadata."""
+
+    # Utiliser un splitter qui prend en compte le langage du document
     text_splitter = RecursiveCharacterTextSplitter.from_language(
         language=Language.MARKDOWN,
         chunk_size=settings.CHUNK_SIZE,
@@ -43,17 +53,20 @@ def create_chunks(documents: list[Document]) -> list[Document]:
     # Automatically splits content and carries over metadata (e.g., source)
     return text_splitter.split_documents(documents)
 
+
+# Retourne l'embedding 
 @lru_cache
 def get_embedding_model():
-    return FastEmbedEmbeddings(
-            model_name=settings.EMBEDDING_MODEL
-        )
+    return FastEmbedEmbeddings(model_name=settings.EMBEDDING_MODEL)
+
 
 """
 Ce module charge le modèle d'embeddings local FastEmbed et gère l'injection
 automatique des chunks de documents (avec leurs métadonnées) dans la base
 de données vectorielle Qdrant Cloud.
 """
+
+# Fonction qui vectorise les chunks reçus et les stocke dans une base de données 
 def index_chunks_in_qdrant(chunks: list[Document]) -> QdrantVectorStore:
     """Vectorise une liste de chunks et les stocke dans Qdrant Cloud.
 
@@ -80,6 +93,9 @@ def index_chunks_in_qdrant(chunks: list[Document]) -> QdrantVectorStore:
     # 3. Retourne le Vector Store prêt pour le Retriever (Phase 2 du RAG)
     return vector_store
 
+
+
+# Recherche par similarité dans la base de données vectorielle
 def search_documents(vector_store: QdrantVectorStore, question: str):
     # Récupère un pool plus large pour filtrer les doublons
     results = vector_store.similarity_search_with_score(
@@ -136,7 +152,7 @@ def generate_answer(
 
     # 3. Exécution : Groq (Principal) -> Fallback Hugging Face (Secours)
     try:
-        print("⚡ Envoi de la requête au LLM Principal (Groq)...")
+        print("Envoi de la requête au LLM Principal (Groq)...")
         llm = ChatGroq(
             groq_api_key=settings.GROQ_API_KEY,
             model_name=settings.GROQ_MODEL,

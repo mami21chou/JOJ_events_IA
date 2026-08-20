@@ -9,11 +9,6 @@ def get_embedding_model():
     print(f" Chargement du modèle : {settings.EMBEDDING_MODEL}")
     return TextEmbedding(model_name=settings.EMBEDDING_MODEL)
 
-class EmbeddingService:
-    """
-    Service d'embeddings utilisant FastEmbed en local.
-    Permet de vectoriser les textes sans API externe.
-    """
 
 
 
