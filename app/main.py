@@ -37,29 +37,29 @@ async def lifespan(app: FastAPI):
     print("========================================")
 
     try:
-        print("📚 Chargement des documents...")
+        print(" Chargement des documents...")
         documents = load_documents()
 
-        print(f"📄 Documents trouvés : {len(documents)}")
+        print(f" Documents trouvés : {len(documents)}")
 
-        print("✂️ Création des chunks...")
+        print(" Création des chunks...")
         chunks = create_chunks(documents)
 
-        print(f"🧩 Chunks créés : {len(chunks)}")
+        print(f" Chunks créés : {len(chunks)}")
 
-        print("🔎 Initialisation de Qdrant...")
+        print(" Initialisation de Qdrant...")
         vector_store = index_chunks_in_qdrant(chunks)
 
-        print("✅ Base vectorielle initialisée")
-        print("🚀 API JOJ Events IA prête")
+        print("Base vectorielle initialisée")
+        print(" API JOJ Events IA prête")
 
     except Exception as erreur:
-        print("❌ Erreur lors de l'initialisation du RAG")
+        print(" Erreur lors de l'initialisation du RAG")
         print(erreur)
 
     yield
 
-    print("🛑 Arrêt de l'API JOJ Events IA")
+    print("Arrêt de l'API JOJ Events IA")
 
 
 # ============================================================
