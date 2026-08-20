@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL")
 
-    
+   
 
 
     # Rag
