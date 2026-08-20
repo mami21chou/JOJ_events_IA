@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from contextlib import asynccontextmanager
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
 from app.core.config import settings
@@ -8,6 +9,7 @@ from langchain_qdrant import QdrantVectorStore
 from langchain_groq import ChatGroq
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain_core.prompts import ChatPromptTemplate
+from fastapi import FastAPI
 import warnings
 from app.prompts.instructions import SYSTEM_PROMPT
 
@@ -164,3 +166,62 @@ def generate_answer(
             return f"Service temporairement indisponible. Erreur : {fallback_err}"
 
 
+# ---------------------------------------------------------------------------
+# Point d'entrée FastAPI
+# ---------------------------------------------------------------------------
+
+# Stockage global du vector_store initialisé au démarrage
+_vector_store: QdrantVectorStore | None = None
+
+
+def get_vector_store() -> QdrantVectorStore:
+    """Retourne le vector store initialisé au démarrage de l'app."""
+    if _vector_store is None:
+        raise RuntimeError("Le vector store n'est pas encore initialisé.")
+    return _vector_store
+
+
+def connect_to_qdrant() -> QdrantVectorStore:
+    """
+    Se connecte à la collection Qdrant existante sans réinsérer les données.
+    À utiliser au démarrage de l'app quand les données sont déjà indexées.
+    """
+    embedding_model = get_embedding_model()
+    return QdrantVectorStore.from_existing_collection(
+        embedding=embedding_model,
+        url=settings.QDRANT_URL,
+        api_key=settings.QDRANT_API_KEY,
+        collection_name=settings.QDRANT_COLLECTION_NAME,
+    )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Connexion au vector store Qdrant existant au démarrage."""
+    global _vector_store
+    print("Démarrage : connexion à la collection Qdrant existante...")
+    _vector_store = connect_to_qdrant()
+    print("Vector store prêt.")
+    yield
+    print("Arrêt de l'application.")
+
+
+app = FastAPI(
+    title=settings.API_TITLE,
+    description=settings.API_DESCRIPTION,
+    lifespan=lifespan,
+)
+
+# Montage du routeur securite_ia (validation, rate limit, filtrage, chat sécurisé)
+from securite_ia import routeur  # noqa: E402
+app.include_router(routeur)
+
+# Montage du routeur chatbot_ia (endpoint /api/chatbot/message/)
+from chatbot_ia import routeur as routeur_chatbot  # noqa: E402
+app.include_router(routeur_chatbot)
+
+
+@app.get("/health", tags=["Santé"])
+def health_check():
+    """Vérifie que l'API est opérationnelle."""
+    return {"status": "ok", "service": settings.API_TITLE}
